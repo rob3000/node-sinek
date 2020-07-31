@@ -14,6 +14,10 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build kafka stack
         run: ./kafka-setup/start.sh
+      - name: Sleep for 30 seconds
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '30s'
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
