@@ -23,6 +23,10 @@ jobs:
         node-version: [10.x, 12.x]
     steps:
       - uses: actions/checkout@v2
+      - name: Sleep for 5 minutes
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '5m'
       - name: check containers
         run: docker ps | grep 9092
       - name: Use Node.js ${{ matrix.node-version }}
@@ -76,9 +80,3 @@ jobs:
         volumes:
           - ${{ github.home }}/service-config/server-jaas.conf:/etc/kafka/server-jaas.conf
           - ${{ github.home }}/service-config/certs:/certs
-        # Set health checks to wait until kafka has started
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
