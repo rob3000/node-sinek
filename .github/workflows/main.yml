@@ -4,20 +4,23 @@ on: [push]
 
 jobs:
   build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: generate certs
+        run: ${{ github.workspace }}/kafka-setup/generate-certs.sh
+      - name: move server conf
+        run: mv ${{ github.workspace }}/kafka-setup/server-jaas.conf /data/server-jaas.conf
+      - name: move generated certs
+        run: mv ${{ github.workspace }}/certs /data/certs
+  test:
     # This job runs on Linux
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         node-version: [10.x, 12.x]
     steps:
       - uses: actions/checkout@v2
-      - name: Build kafka stack
-        run: ./kafka-setup/start.sh
-      - name: Sleep for 5 mins to allow the cluster to start.
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '5m'
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
@@ -29,3 +32,42 @@ jobs:
           yarn run test
         env:
           CI: true
+    
+    services:
+      zookeeper:
+        image: wurstmeister/zookeeper:latest
+        ports:
+          - 2181:2181
+        env:
+          JMX_OPTS: "-Djava.security.auth.login.config=/etc/kafka/server-jaas.conf"
+        volumes:
+          - /data/server-jaas.conf:/etc/kafka/server-jaas.conf
+      kafka:
+        image: wurstmeister/kafka:0.10.2.1
+        ports:
+          - 9092:9092
+          - 9093:9093
+          - 9193:9193
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_PORT: 9092
+          KAFKA_ADVERTISED_PORT: 9093
+          KAFKA_ADVERTISED_HOST_NAME: "localhost"
+          KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://localhost:9092,SSL://localhost:9093,SASL_SSL://localhost:9193"
+          KAFKA_LISTENERS: "PLAINTEXT://:9092,SSL://:9093,SASL_SSL://:9193"
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_SSL_KEYSTORE_LOCATION: "/certs/docker.kafka.server.keystore.jks"
+          KAFKA_SSL_TRUSTSTORE_LOCATION: "/certs/docker.kafka.server.truststore.jks"
+          KAFKA_SSL_KEYSTORE_PASSWORD: "nodesinek"
+          KAFKA_SSL_KEY_PASSWORD: "nodesinek"
+          KAFKA_SSL_TRUSTSTORE_PASSWORD: "nodesinek"
+          KAFKA_SSL_CLIENT_AUTH: "required"
+          KAFKA_SECURITY_INTER_BROKER_PROTOCOL: "SASL_SSL"
+          KAFKA_CREATE_TOPICS: "test:1:1"
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+          KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: "PLAIN"
+          KAFKA_SASL_ENABLED_MECHANISMS: "PLAIN"
+          KAFKA_JMX_OPTS: "-Djava.security.auth.login.config=/etc/kafka/server-jaas.conf"
+        volumes:
+          - /data/server-jaas.conf:/etc/kafka/server-jaas.conf
+          - /data/certs:/certs
