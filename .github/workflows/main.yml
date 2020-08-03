@@ -9,10 +9,12 @@ jobs:
       - uses: actions/checkout@v2
       - name: generate certs
         run: ${{ github.workspace }}/kafka-setup/generate-certs.sh
+      - name: create config dir
+        run: sudo mkdir ${{ github.home }}/service-config
       - name: move server conf
-        run: mv ${{ github.workspace }}/kafka-setup/server-jaas.conf /data/server-jaas.conf
+        run: sudo mv ${{ github.workspace }}/kafka-setup/server-jaas.conf ${{ github.home }}/service-config/server-jaas.conf
       - name: move generated certs
-        run: mv ${{ github.workspace }}/certs /data/certs
+        run: sudo mv ${{ github.workspace }}/certs ${{ github.home }}/service-config/certs
   test:
     # This job runs on Linux
     runs-on: ubuntu-latest
@@ -69,5 +71,5 @@ jobs:
           KAFKA_SASL_ENABLED_MECHANISMS: "PLAIN"
           KAFKA_JMX_OPTS: "-Djava.security.auth.login.config=/etc/kafka/server-jaas.conf"
         volumes:
-          - /data/server-jaas.conf:/etc/kafka/server-jaas.conf
-          - /data/certs:/certs
+          - ${{ github.home }}/service-config/server-jaas.conf:/etc/kafka/server-jaas.conf
+          - ${{ github.home }}/service-config/certs:/certs
