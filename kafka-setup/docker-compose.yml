@@ -1,4 +1,4 @@
-version: "2"
+version: "3.4"
 services:
   zookeeper:
     image: wurstmeister/zookeeper:latest
@@ -45,3 +45,9 @@ services:
       - ./server-jaas.conf:/etc/kafka/server-jaas.conf
       - ../certs:/certs
       - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD-SHELL", 'broker-list.sh | grep ":9092"']
+      interval: 1m
+      timeout: 30s
+      retries: 3
+      start_period: 2m

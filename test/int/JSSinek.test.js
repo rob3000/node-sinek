@@ -26,6 +26,7 @@ describe("Javascript Client INT", () => {
         consumer.connect(false)
       ]).then(() => {
         consumer.consume(async (messages, callback) => {
+          console.log(messages);
           messages.forEach((message) => {
             if(!firstMessageReceived){
               firstMessageReceived = true;
